@@ -9,9 +9,38 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import java.net.MalformedURLException;
+import java.security.cert.Certificate;
+import java.io.*;
+import java.net.*;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLPeerUnverifiedException;
 
 public class MyBot extends PircBot {
+
+    ///////////////////////////////////////////////////////////////////////////
+    //                          Settings
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Change this value if you the program to make more request to the imdbapi.com for !randomMovie <genre> command
+    private int maxAPIrequest = 40;
+
+    //Change this to the name of whoever you want to be able to delete recommentdations and output custom bot messages.
+    private String adminsUserName = "AdminsUserName";
+
+    //Change this value if you want to change the max number of messages the bot should store for the !sup command
+    private int maxMessagesOnStack = 50;
+
+
+
+
+
+
+
+
 
     public static String sourceData = "";
     public static String newUrl;
@@ -23,7 +52,7 @@ public class MyBot extends PircBot {
         //Set the name and login of the bot (You can use it in MyBotMain if you want your individual instances of bot to have different names)
         this.setName("BreeDUH");
         this.setLogin("BreeDUH");
-        
+
         setMessageDelay(500);
     }
 
@@ -35,59 +64,59 @@ public class MyBot extends PircBot {
     //Public message command handling (All the message in a channel)
     public void onMessage(String channel, String sender, String login, String hostname, String message) {
         int ranCmd = 0;     // Just a variable to see how many commands were handled by the bot
-        
+
         //Shows current system time
         if (message.matches("^!time")) {
             showCurrentSysTime(message, channel, sender, login, hostname);
             ranCmd++;
-        } 
+        }
 
         //Shows random movie using imdb's random movie generator and only shows them if they meet the users genere criteria
-        else if (message.equals("!random") || message.indexOf("!random ") == 0) {
+        else if (message.equals("!randomMovie") || message.indexOf("!randomMovie ") == 0) {
 
             randomMovie(message, channel, sender, login, hostname);
             ranCmd++;
-            
-        } 
+
+        }
 
         //Shows last 100 msgs of the channel
         else if (message.equals("!sup") || message.equals("!sup ")) {
 
             showLastMsgs(sender);
-            
-        }  
 
-        //Outputs a random number between 0 - <user defines num> OR <userdefined num> - <userdefined num> 
+        }
+
+        //Outputs a random number between 0 - <user defines num> OR <userdefined num> - <userdefined num>
         else if (message.indexOf("!num ") == 0) {
             message = message.trim();
             randomNumber(message, channel, sender, login, hostname);
             ranCmd++;
-            
-        } 
 
-        // Finds out a movie that a user recommended. !rec will show a recommendation where as !rec <link> will add the recommendation to a file 
+        }
+
+        // Finds out a movie that a user recommended. !rec will show a recommendation where as !rec <link> will add the recommendation to a file
         else if (message.indexOf("!rec") == 0) {
             recommendation(message, channel, sender, login, hostname);
             ranCmd++;
-            
-        } 
-        
+
+        }
+
         //Cool story bro
         else if (message.equals("!csb") || message.equals("!csb ")) {
             coolStoryBro(message, channel, sender, login, hostname);
             ranCmd++;
-            
+
         }
-        
+
         //Google something. Generates a google search link
         else if (message.indexOf("!g ") == 0) {
             googleSearch(message, channel, sender, login, hostname);
             ranCmd++;
-            
+
         }
 
 
-        //Delete a bad/troll recommendaton. Will only let some predefined users to run the command
+        //Delete a bad/troll recommendaton. Will only let some predefined user to run the command
         else if (message.indexOf("!delrec ") == 0) {
             message = message.trim();
             deleteRecommendation(message, channel, sender, login, hostname);
@@ -104,24 +133,18 @@ public class MyBot extends PircBot {
             sendMessage(channel, "Co-Existing: http://example.com/co-exist");
             sendMessage(channel, "Trumping: http://example.com/trmp");
             ranCmd++;
-            
-        }
-        //Wiki
-        else if (message.matches("!wiki")) {
-            sendMessage(channel, "WIKI: http://example.com/Wiki");
-            ranCmd++;
-            
+
         }
         //Manual for how to use the bot
         else if (message.matches("!man ") || message.matches("!man")) {
             msgHelpManual(sender);
-            ranCmd++;  
+            ranCmd++;
         }
-        
+
         //Add the message to the call stack
         if(ranCmd == 0){
             msgStake.add(Colors.BOLD + "<" + currentTime() + "> ["+ sender + "] " + Colors.NORMAL + message);
-            if(msgStake.size() > 50){
+            if(msgStake.size() > maxMessagesOnStack){
                 msgStake.remove(0);
             }
         }
@@ -130,9 +153,12 @@ public class MyBot extends PircBot {
     //Private Message command handling
     public void onPrivateMessage(String sender, String login, String hostname, String message) {
         String channel = sender;
-        if (sender.equals("ImNotWearingPants") || sender.equals("ImNotWearingPants_") || sender.equals("imnotwearingpants") || sender.equals("IMNOTWEARINGPANTS")) {
+        if (sender.equals(adminsUserName) {
+          System.out.println("ADMIN sending private messages.");
             sendMessage(currentChan, message);
-        } 
+        } else{
+          System.out.println("Random user sending private messages.");
+        }
     }
 
 
@@ -159,7 +185,6 @@ public class MyBot extends PircBot {
     public String randomNumExt(String html) {
         String randomNum = "";
         int start = html.indexOf("<pre class=\"data\">") + 18;
-        System.out.println(html.substring(start));
         randomNum = html.substring(start, html.indexOf("</pre>", start));
         return randomNum;
     }
@@ -188,7 +213,7 @@ public class MyBot extends PircBot {
         // only got here if we didn't return false
         return true;
     }
-    
+
     //Method to generate a tiny url
     public String urlShortner(String link) {
         return redirectURL("http://is.gd/create.php?format=simple&url=" + link.trim());
@@ -200,59 +225,81 @@ public class MyBot extends PircBot {
     }
 
     //Method to handle url redirect and stuff. This method produces/changes sourceData variable with the source of the webpage
-    public String redirectURL(String url) {
-        try {
-            URL obj = new URL(url);
-            HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
-            conn.setReadTimeout(5000);
+    public static String redirectURL(String url) {
+      try {
+        BufferedReader in;
+        URL obj = new URL(url);
+        HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+        con.setReadTimeout(2000);
+        con.addRequestProperty("Accept-Language", "en-US,en;q=0.8");
+        con.addRequestProperty("User-Agent", "Mozilla");
+        con.addRequestProperty("Referer", "google.com");
+        boolean redirect = false;
+        newUrl = url;
+        // Normally, 3xx is redirect
+        int status = con.getResponseCode();
+        if (status != HttpURLConnection.HTTP_OK) {
+          if (status == HttpURLConnection.HTTP_MOVED_TEMP
+                || status == HttpURLConnection.HTTP_MOVED_PERM
+                || status == HttpURLConnection.HTTP_SEE_OTHER) {
+            redirect = true;
+          }
+        }
+
+        if (redirect) {
+
+          // get redirect url from "location" header field
+          newUrl = con.getHeaderField("Location");
+          System.out.println("The redirected URL =====>" +newUrl);
+
+
+
+          if(newUrl.indexOf("https://") == 0){
+            URL redirectedUrl1 = new URL(newUrl);
+            HttpsURLConnection conn = (HttpsURLConnection)redirectedUrl1.openConnection();
+            conn.setReadTimeout(2000);
             conn.addRequestProperty("Accept-Language", "en-US,en;q=0.8");
             conn.addRequestProperty("User-Agent", "Mozilla");
             conn.addRequestProperty("Referer", "google.com");
-            boolean redirect = false;
-            // Normally, 3xx is redirect
-            int status = conn.getResponseCode();
-            if (status != HttpURLConnection.HTTP_OK) {
-                if (status == HttpURLConnection.HTTP_MOVED_TEMP
-                        || status == HttpURLConnection.HTTP_MOVED_PERM
-                        || status == HttpURLConnection.HTTP_SEE_OTHER) {
-                    redirect = true;
-                }
-            }
+            in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+          }
+          else{
+            URL redirectedUrl = new URL(newUrl);
+            HttpURLConnection conn = (HttpURLConnection)redirectedUrl.openConnection();
+            conn.setReadTimeout(2000);
+            conn.addRequestProperty("Accept-Language", "en-US,en;q=0.8");
+            conn.addRequestProperty("User-Agent", "Mozilla");
+            conn.addRequestProperty("Referer", "google.com");
+            in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+          }
 
-            if (redirect) {
-                // get redirect url from "location" header field
-                newUrl = conn.getHeaderField("Location");
-
-                // get the cookie if need, for login
-                String cookies = conn.getHeaderField("Set-Cookie");
-                
-                // open the new connnection again
-                conn = (HttpURLConnection) new URL(newUrl).openConnection();
-                conn.setRequestProperty("Cookie", cookies);
-                conn.addRequestProperty("Accept-Language", "en-US,en;q=0.8");
-                conn.addRequestProperty("User-Agent", "Mozilla");
-                conn.addRequestProperty("Referer", "google.com");
-
-            }
-
-            newUrl = conn.getURL().toString();
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(conn.getInputStream()));
-            String inputLine;
-            StringBuffer html = new StringBuffer();
-
-            while ((inputLine = in.readLine()) != null) {
-                html.append(inputLine);
-            }
-            in.close();
-            return html.toString();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "false";
         }
+        else{
+          System.out.println("CALLING BUFFER READER FOR THE NON REDIRECTED URL");
+          in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+        }
+
+
+        newUrl = con.getURL().toString();
+        String inputLine;
+        StringBuffer html = new StringBuffer();
+        if (in == null){
+          System.out.println("Bufferreader in: IS EMPTY");
+        } else{
+          System.out.println("Bufferreader in: IS NOT EMPTY");
+        }
+        while ((inputLine = in.readLine()) != null) {
+          html.append(inputLine);
+        }
+        in.close();
+        return html.toString();
+
+      } catch (Exception e) {
+        e.printStackTrace();
+        return "false";
+      }
     }
-    
+
     //Method to extract title of the page
     public String extTitleOfWebPage(String data) {
         String title = "";
@@ -267,15 +314,13 @@ public class MyBot extends PircBot {
     //Function to PM rhe bot manual to the user
     public void msgHelpManual(String sender) {
         sendMessage(sender, "List of commands:");
-        sendMessage(sender, "!random [genre]  - Finds a random movie using imdb.com/random/title and output's the IMDB link for that particular movie. The genre parameter is optional. Currently supported genres -> [Action, Adventure, Comedy, Drama, Mystery, Romance, Sci-Fi, Thriller]");
-        sendMessage(sender, "!num <A> [B] - Finds a random number using random.org . If only 1 parameter is given, the random number will be generated between 0 and A. Parameter B is option, if B is given, the random number will be between A and B. The limit is ±1,000,000,000");
-        sendMessage(sender, "!rec [link] - If no link is given as a prameter, outputs one of the random recommendations by the users. If a link is given, it will add that link to the database with your USERNAME!"+Colors.BOLD+ "ONLY IMDB LINKS ALLOWED. Format (http://www.imdb.com/title/tt0092115/)");
+        sendMessage(sender, "!randomMovie [genre]  - Finds a random movie using imdb.com/random/title and output's the IMDB link for that particular movie. The genre parameter is optional. Currently supported genres -> [Action, Adventure, Comedy, Drama, Mystery, Romance, Sci-Fi, Thriller]");
+        sendMessage(sender, "!num <A> [B] - Finds a random number using random.org . If only 1 parameter is given, the random number will be generated between 0 and A. Parameter B is option, if B is given, the random number will be between A and B. The limit is ï¿½1,000,000,000");
+        sendMessage(sender, "!rec [link] - If no link is given as a prameter, outputs one of the random recommendations by the users. If a link is given, it will add that link to the database with your USERNAME!"+Colors.BOLD+ "ONLY IMDB LINKS ALLOWED. Format (http://www.imdb.com/title/tt0092115/ OR https://www.imdb.com/title/tt0092115/)");
         sendMessage(sender, "!g - Google something from irc! This command will output a google search link, a link to the first page from the results and the title of this first page.");
         sendMessage(sender, "!rules - Links to some important rule.");
-        sendMessage(sender, "!wiki - Link to the wiki page.");
-        sendMessage(sender, "!missing - Dont know what to encode? Go here and find the missing formats.");
         sendMessage(sender, "!sup - Shows you the last 50 messages from the channel.");
-
+        sendMessage(sender, "!time - Shows current time of BOT's system.");
     }
 
     //Function to read an entire file
@@ -296,6 +341,7 @@ public class MyBot extends PircBot {
         int err = 0;
         String fileLoc = "./rec.dat";
         String fileData = "";
+        String webpageData = "";
         try {
             fileData = readEntireFile(fileLoc);
             fileData = fileData.trim();
@@ -310,7 +356,16 @@ public class MyBot extends PircBot {
                 String[] tokens = fileData.split("\\|");
                 int randomNum = Integer.parseInt(randomNumExt(redirectURL("http://www.random.org/integers/?num=1&min=0&max=" + (tokens.length - 1) + "&col=5&base=10&format=html&rnd=new")).trim());
                 String[] recommendationRow = tokens[randomNum].split(",");
-                sendMessage(channel, recommendationRow[0].trim() + " By-" + Colors.BOLD + recommendationRow[1]);
+
+                String tempLink =  recommendationRow[0].trim();
+                int start = tempLink.indexOf("tt", 3);
+                String imdbId = tempLink.substring(start, start + 9);
+                webpageData = redirectURL("http://www.imdbapi.com/?i=" + imdbId + "&r=json");
+                String pageTitle = extImdbNameYear(webpageData);
+
+                sendMessage(channel, pageTitle + " (Recommended by-" + Colors.BOLD + recommendationRow[1] + ")");
+                sendMessage(channel, recommendationRow[0].trim());
+
             } else {
                 sendMessage(channel, "There are no recommendations right now. Why don't you be the first!");
             }
@@ -324,20 +379,24 @@ public class MyBot extends PircBot {
                 if ((link.indexOf("http://www.imdb.com/title/") != -1) || (link.indexOf("https://www.imdb.com/title/") != -1)) {
                     String movieId = "";
                     int start = link.indexOf("title/");
-                    int end1 = link.indexOf("/", start + 1);
+                    int end1 = link.indexOf("/", start + 8);
                     if (end1 == -1) {
-                        movieId = link.substring(start + 3);
+                        movieId = link.substring(start + 6);
                     } else {
-                        movieId = link.substring(start + 3, end1);
+                        movieId = link.substring(start + 6, end1);
                     }
-                    
+                    System.out.println("Trying to add movie with movieID:" + movieId);
+
                     if (fileData.indexOf("/title/" + movieId) == -1) {
 
                         String data = link + "," + sender + "|";
                         try {
                             data = data.replaceAll("[\n\r]", "");
                             appendData(fileLoc, data);
-                            sendMessage(channel, "Link added, Thanks!");
+
+                            webpageData = redirectURL("http://www.imdbapi.com/?i=" + movieId + "&r=json");
+                            String pageTitle = extImdbNameYear(webpageData);
+                            sendMessage(channel, pageTitle + " added, Thanks!");
                         } catch (Exception e) {
                             sendMessage(channel, "An error occured while saving your recommendation :/");
                         }
@@ -375,7 +434,7 @@ public class MyBot extends PircBot {
 
     //Methid to delete a recommendation
     public void deleteRecommendation(String message, String channel, String sender, String login, String hostname) {
-        if (sender.equals("AdminsUserName") || sender.equals("AdminsUserName_")) {
+        if (sender.equals(adminsUserName)) {
 
             if ((message.indexOf("http://www.imdb.com/title/") != -1) || (message.indexOf("https://www.imdb.com/title/") != -1)){
                 String link = message.trim();
@@ -396,8 +455,9 @@ public class MyBot extends PircBot {
                 if (err == 0) {
                     int start = fileData.indexOf(link);
                     if (start != -1) {
-                        String dataToRemove = fileData.substring(start, fileData.indexOf("|", start + 1) + 1);
-                        fileData = fileData.replaceAll(dataToRemove, "");
+                        String dataToRemove = fileData.substring(start, (fileData.indexOf("|", start + 1) + 1));
+                        System.out.println("String Recommendation that the program is trying to remove: '" + dataToRemove + "'");
+                        fileData = fileData.replaceAll(Pattern.quote(dataToRemove), "");
                         try {
                             fileData = fileData.replaceAll("[\n\r]", "");
                             overrideData(fileLoc, fileData);
@@ -434,8 +494,8 @@ public class MyBot extends PircBot {
         googleSearch = googleSearch.trim();
         try {
             sendMessage(channel, "https://www.google.com/search?q=" + URLEncoder.encode(googleSearch, "ISO-8859-1"));
-            String data = redirectURL("https://www.google.com/search?btnI=Im+Feeling+Lucky&q=" + URLEncoder.encode(googleSearch, "ISO-8859-1"));
-            if(newUrl.indexOf("http://www.imdb.com/title/") != -1){
+            String data = redirectURL("http://www.google.com/search?btnI=Im+Feeling+Lucky&q=" + URLEncoder.encode(googleSearch, "ISO-8859-1"));
+            if(newUrl.indexOf("http://www.imdb.com/title/") != -1 || newUrl.indexOf("https://www.imdb.com/title/") != -1){
                 String tempLink = newUrl;
                 int start = newUrl.indexOf("tt", 3);
                 String imdbId = newUrl.substring(start, start + 9);
@@ -454,8 +514,8 @@ public class MyBot extends PircBot {
             sendMessage(channel, "An Error occured. Please try again later :(");
         }
     }
-    
-    
+
+
     //Function to PM all the last msgs to the sender
     public void showLastMsgs(String sender){
         if(msgStake.size() > 0){
@@ -466,10 +526,10 @@ public class MyBot extends PircBot {
         } else {
             sendMessage(sender, "No new messages.");
         }
-        
+
     }
-    
-    
+
+
     //Function to return current time in HH:mm:ss
     public String currentTime(){
         Calendar cal = Calendar.getInstance();
@@ -477,7 +537,7 @@ public class MyBot extends PircBot {
     	SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
     	return sdf.format(cal.getTime());
     }
-    
+
 
     //Function to say Cool Story Bro
     public void coolStoryBro(String message, String channel, String sender, String login, String hostname) {
@@ -506,16 +566,16 @@ public class MyBot extends PircBot {
             sendMessage(channel, "Syntax error!");
         } else if (splited.length == 2 && isInteger(splited[1])) {
 
-            sendMessage(channel, sender + " :" + randomNumExt(redirectURL("http://www.random.org/integers/?num=1&min=0&max=" + splited[1] + "&col=5&base=10&format=html&rnd=new")));
+            sendMessage(channel, sender + " : " + randomNumExt(redirectURL("http://www.random.org/integers/?num=1&min=0&max=" + splited[1] + "&col=5&base=10&format=html&rnd=new")));
         } else if (splited.length == 3 && isInteger(splited[1]) && isInteger(splited[2]) && Integer.parseInt(splited[1]) < Integer.parseInt(splited[2])) {
 
-            sendMessage(channel, sender + " :" + randomNumExt(redirectURL("http://www.random.org/integers/?num=1&min=" + splited[1] + "&max=" + splited[2] + "&col=5&base=10&format=html&rnd=new")));
+            sendMessage(channel, sender + " : " + randomNumExt(redirectURL("http://www.random.org/integers/?num=1&min=" + splited[1] + "&max=" + splited[2] + "&col=5&base=10&format=html&rnd=new")));
         } else {
             sendMessage(channel, "Syntax error!");
         }
     }
 
-    //Function to find random movie that matches users specified genere(if given). Note: Some generes are commented out because sometimes it can take a lot 
+    //Function to find random movie that matches users specified genere(if given). Note: Some generes are commented out because sometimes it can take a lot
     // of requests to the api server to find movies that are of niche genre and also have good rating.
     public void randomMovie(String message, String channel, String sender, String login, String hostname) {
         String genre = "";
@@ -523,7 +583,7 @@ public class MyBot extends PircBot {
         String[] splited = message.split("\\s+");
         int notAGenreErr = 0;
 
-        if (splited.length == 2) {
+        if (splited.length >= 2) {
             if (splited[1].equalsIgnoreCase("action")) {
                 genre = "Action";
             } else if (splited[1].equalsIgnoreCase("Adventure")) {
@@ -572,8 +632,11 @@ public class MyBot extends PircBot {
         }
         int count = 0;
         if (notAGenreErr == 0 || splited.length == 1) {
-            
             while (1 == 1) {
+                if(count > maxAPIrequest){
+                  sendMessage(channel, sender + ": Ignoring your command because it was taking too long to find a movie with genre: " + genre);
+                  System.out.println("IRC Bot Warning: Took more than " + maxAPIrequest + " requests. Ignoring command.");
+                }
                 String imdbLink, imdbId;
                 imdbLink = randomImdbExt(redirectURL("http://www.imdb.com/random/title"));
                 int start = imdbLink.indexOf("tt", 3);
@@ -581,10 +644,12 @@ public class MyBot extends PircBot {
                 sourceData = redirectURL("http://www.imdbapi.com/?i=" + imdbId + "&r=json");
                 if (sourceData.indexOf(",\"Type\":\"movie\",") != -1) {
                     if (splited.length == 1) {
+                        System.out.println("Showing a movie with a random genre");
                         sendMessage(channel, sender + ": " + Colors.BOLD + extImdbNameYear(sourceData) + Colors.NORMAL + " " + "http://www.imdb.com/title/" + imdbId);
                         break;
                     } else {
                         if (hasGenre(sourceData, genre)) {
+                            System.out.println("Showing a movie with a genre of " + genre);
                             sendMessage(channel, sender + ": " + Colors.BOLD + extImdbNameYear(sourceData) + Colors.NORMAL + " " + "http://www.imdb.com/title/" + imdbId);
                             break;
                         }
