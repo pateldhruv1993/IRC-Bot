@@ -17,7 +17,6 @@ public class MyBotMain {
         bot.joinChannel("#mybottest");
 
         /*
-
         //Example of how to make multiple instances of bot and make it join different server or channel
 
         // Start our bot up.

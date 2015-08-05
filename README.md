@@ -1,4 +1,4 @@
-<h1>Whats this?</h1>
+<h1>What is this?</h1>
 <p>
   This is a simple IRC bot that I made a year or so ago. It has some functionality that me and my friends on the IRC wanted.
 </p>
