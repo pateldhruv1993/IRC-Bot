@@ -25,6 +25,12 @@ public class MyBot extends PircBot {
     //                          Settings
     ///////////////////////////////////////////////////////////////////////////
 
+    // Change this to change the name of the bot
+    private String botName = "MrHandy";
+    
+    // Change this to change the username of the bot
+    private String botUserName = "MrHandy";
+    
     // Change this value if you the program to make more request to the imdbapi.com for !randomMovie <genre> command
     private int maxAPIrequest = 40;
 
@@ -40,8 +46,6 @@ public class MyBot extends PircBot {
 
 
 
-
-
     public static String sourceData = "";
     public static String newUrl;
     public static String currentChan;
@@ -50,8 +54,8 @@ public class MyBot extends PircBot {
     public MyBot() {
 
         //Set the name and login of the bot (You can use it in MyBotMain if you want your individual instances of bot to have different names)
-        this.setName("BreeDUH");
-        this.setLogin("BreeDUH");
+        this.setName(botName);
+        this.setLogin(botUserName);
 
         setMessageDelay(500);
     }
