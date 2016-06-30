@@ -1,6 +1,6 @@
 <h1>What is this?</h1>
 <p>
-  This is a simple IRC bot that I made a year or so ago. It has some functionality that me and my friends on the IRC wanted.
+  This is a simple IRC bot that I made a year or so ago. It has some functionality that me and my friends on the IRC wanted. At some places the URLs that I use have been replaced with fake URLs to because of privacy reasons.
 </p>
 <b>NOTE: This bot does NOT handle modding of the channel. For example kicking people for spamming, using bigoted words etc. But can be easily added on top of this using the PIRC framework that is included.</b>
 
