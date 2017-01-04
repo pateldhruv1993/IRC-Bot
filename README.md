@@ -10,7 +10,7 @@
   <b>NOTE:</b> As the API does not have any command to directly give a result with specified genre, it will keep making requests till it find a movie with specified genre. To stop it from going on and on there's a "Max requests" parameter (40 by default). That is also the reason some of the genres are commented out in the code but you can go ballsy and give your users the option to find a movie of any niche genre, it will just take more requests.</li>
 
 
-  <li><b>!num &lt;A&gt; [B] -</b> Finds a random number using random.org . If only 1 parameter is given, the random number will be generated between 0 and <A>. Parameter [B] is optional. If [B] is given, the random number will be between A and B. The limit is  1,000,000,000</li>
+  <li><b>!num &lt;A&gt; [B] -</b> Finds a random number using random.org . If only 1 parameter is given, the random number will be generated between 0 and &lt;A&gt;. Parameter [B] is optional. If [B] is given, the random number will be between A and B. The limit is  1,000,000,000</li>
 
 
   <li><b>!rec [link] -</b> If no link is given as a parameter, it outputs one of the random recommendations by the users. If a link is given, it will add that link to the database (rec.dat file) with the users name. ONLY IMDB LINKS ALLOWED. Format (http://www.imdb.com/title/tt0092115/ OR https://www.imdb.com/title/tt0092115/)</li>
